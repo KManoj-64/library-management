@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Library Management System - Login</title>
+  <link rel="stylesheet" href="/css/tailwind.css">
+</head>
+<body>
+<div id="loginPageContainer">
+  <div class="box">
+    <h2>📚 Library Hub</h2>
+    <form id="loginForm">
+        <label>Login Role</label>
+        <select id="role" name="role" required>
+            <option value="student">👨‍🎓 Student</option>
+            <option value="librarian">📋 Admin/Librarian</option>
+        </select>
+        <label>Username</label>
+        <input type="text" name="username" id="username" placeholder="Enter your username" required>
+        <label>Password</label>
+        <input type="password" name="password" id="password" placeholder="Enter your password" required>
+        <button type="submit">Sign In</button>
+    </form>
+    <p class="link-text">New member? <a href="/pages/register.html">Create Account</a></p>
+  </div>
+</div>
+<script src="/js/auth.js"></script>
+</body>
+</html>
