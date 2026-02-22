@@ -105,22 +105,22 @@ async function loadReturnedBooks() {
       headers: { 'Authorization': `Bearer ${TOKEN}` }
     });
     const data = await response.json();
-    const returned = data.returned || [];
+    const returned = data.returned || data.transactions || [];
     
     const tbody = document.getElementById('returnedTable');
-    tbody.innerHTML = returned.length > 0 ? returned.map(tx => `
+    tbody.innerHTML = returned.length > 0 ? returned.map(issue => `
       <tr>
-        <td>${tx.username}</td>
-        <td>${tx.bookTitle}</td>
-        <td>${new Date(tx.borrowedAt).toLocaleDateString()}</td>
-        <td>${new Date(tx.returnedAt).toLocaleDateString()}</td>
-        <td style="color: ${tx.fine > 0 ? '#ef4444' : '#10b981'};"><strong>₹${tx.fine || 0}</strong></td>
+        <td>${issue.username}</td>
+        <td>${issue.bookTitle}</td>
+        <td>${new Date(issue.issueDate).toLocaleDateString()}</td>
+        <td>${issue.actualReturnDate ? new Date(issue.actualReturnDate).toLocaleDateString() : 'N/A'}</td>
+        <td style="color: ${issue.fine > 0 ? '#ef4444' : '#10b981'};"><strong>₹${issue.fine || 0}</strong></td>
       </tr>
     `).join('') : '<tr><td colspan="5" style="text-align: center; color: #9ca3af;">No returned books</td></tr>';
     
     document.getElementById('returnedCount').textContent = returned.length;
   } catch (err) {
-    console.error('Error loading returned books:', err);
+    console.error('✗ Error loading returned books:', err);
   }
 }
 
@@ -377,20 +377,24 @@ async function issueBook(event) {
   }
 }
 
-async function returnBookModal(transactionId) {
+async function returnBookModal(issueId) {
   if (!confirm('Confirm book return?')) return;
   
   try {
+    console.log('📖 Returning issue:', issueId);
+    
     const response = await fetch(`${API_BASE}/transactions/return`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${TOKEN}`
       },
-      body: JSON.stringify({ transactionId })
+      body: JSON.stringify({ issueId })
     });
     
     const result = await response.json();
+    console.log('✓ Return response:', result);
+    
     if (result.success) {
       const fine = result.fine || 0;
       alert(`✅ Book returned successfully${fine > 0 ? `\nFine: ₹${fine}` : ''}`);
@@ -401,7 +405,7 @@ async function returnBookModal(transactionId) {
       alert('❌ ' + (result.message || 'Failed to return book'));
     }
   } catch (err) {
-    console.error('Error returning book:', err);
+    console.error('✗ Error returning book:', err);
     alert('Error returning book');
   }
 }
