@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transaction History - Library Management</title>
+  <link rel="stylesheet" href="/css/tailwind.css" />
+  <style>
+    body { background: #f1f5f9; }
+    .wrapper { max-width: 1200px; margin: 0 auto; padding: 24px; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 10px; flex-wrap: wrap; }
+    .panel { background: #fff; border-radius: 14px; border: 1px solid #e2e8f0; padding: 18px; box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06); }
+    .controls { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+    .controls input, .controls select { padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #f8fafc; color: #475569; font-size: 13px; text-transform: uppercase; letter-spacing: .4px; padding: 11px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+    td { padding: 11px; border-bottom: 1px solid #f1f5f9; }
+    tr:hover td { background: #f8fafc; }
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+    .badge-issued { background: #dbeafe; color: #1d4ed8; }
+    .badge-returned { background: #dcfce7; color: #166534; }
+    .badge-overdue { background: #fee2e2; color: #b91c1c; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <div>
+        <h2>📜 Transaction History</h2>
+        <p style="color:#64748b; margin: 0;">View borrowing and return records</p>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-secondary" onclick="goBack()">⬅ Back</button>
+        <button class="btn-primary" onclick="loadTransactionHistory()">🔄 Refresh</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="controls">
+        <input id="historySearch" type="text" placeholder="Search by user or book" onkeydown="if(event.key==='Enter'){loadTransactionHistory();}">
+        <select id="statusFilter" onchange="loadTransactionHistory()">
+          <option value="all">All Status</option>
+          <option value="Issued">Issued</option>
+          <option value="Returned">Returned</option>
+        </select>
+      </div>
+
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Book</th>
+              <th>Issued Date</th>
+              <th>Due Date</th>
+              <th>Returned Date</th>
+              <th>Fine</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="historyTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/transaction-history.js"></script>
+</body>
+</html>

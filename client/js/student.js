@@ -2,9 +2,22 @@ const API_BASE = 'http://localhost:3000/api';
 const TOKEN = localStorage.getItem('token');
 const USER_ID = localStorage.getItem('userId');
 
+// Check if user is logged in
+if (!TOKEN || localStorage.getItem('userRole') !== 'student') {
+  console.warn('⚠️ Not logged in as student, redirecting to login');
+  window.location.href = '/pages/login.html';
+}
+
 let currentBook = null;
 let currentTransaction = null;
 let booksMap = new Map(); // Store books by ID for safe access
+
+function formatDateSafe(value) {
+    const parsed = Number(value);
+    const date = new Date(Number.isFinite(parsed) ? parsed : value);
+    if (Number.isNaN(date.getTime())) return 'N/A';
+    return date.toLocaleDateString();
+}
 
 // ============ MODAL & TAB HELPERS ============
 function openModal(modalId) {
@@ -33,7 +46,12 @@ function switchTab(tabName) {
     }
     
     // Mark button as active
-    event.target?.classList.add('active');
+    const tabButtons = document.querySelectorAll('.tab-button');
+    tabButtons.forEach(button => {
+        if (button.getAttribute('onclick')?.includes(`'${tabName}'`)) {
+            button.classList.add('active');
+        }
+    });
     
     // Load data for the tab
     if (tabName === 'browse') loadAllBooks();
@@ -78,6 +96,14 @@ async function searchBooks() {
         console.error('✗ Search error:', error);
         document.getElementById('booksContainer').innerHTML = '<p style="color: red;">❌ Search failed</p>';
     }
+}
+
+function clearSearch() {
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.value = '';
+    }
+    loadAllBooks();
 }
 
 function displayBooks(books) {
@@ -237,22 +263,34 @@ async function loadMyLoans() {
         }
         
         tbody.innerHTML = loans.map(loan => {
-            const issueDate = new Date(loan.issueDate).toLocaleDateString();
-            const returnDate = new Date(loan.returnDate).toLocaleDateString();
+            const issueDate = formatDateSafe(loan.issueDate);
+            const returnDate = formatDateSafe(loan.returnDate);
             const today = new Date();
             const dueDay = new Date(loan.returnDate);
             const isOverdue = today > dueDay;
             const daysUntilDue = Math.ceil((dueDay - today) / (1000 * 60 * 60 * 24));
+            const dueDaysRemaining = typeof loan.dueDaysRemaining === 'number' ? loan.dueDaysRemaining : daysUntilDue;
+            const overdueDays = typeof loan.overdueDays === 'number' ? loan.overdueDays : (isOverdue ? Math.abs(daysUntilDue) : 0);
+            const estimatedFine = typeof loan.estimatedFine === 'number' ? loan.estimatedFine : (overdueDays > 0 ? overdueDays * 10 : 0);
+
+            const statusText = isOverdue
+                ? `⚠️ OVERDUE by ${overdueDays} day${overdueDays === 1 ? '' : 's'}`
+                : (dueDaysRemaining <= 3 ? `📅 Due in ${dueDaysRemaining} day${dueDaysRemaining === 1 ? '' : 's'}` : `✅ ${dueDaysRemaining} days left`);
+
+            const warningText = isOverdue
+                ? `<div style="color:#b91c1c; font-size:12px; margin-top:4px;">Estimated fine: ₹${estimatedFine}</div>`
+                : '';
             
             return `<tr>
                 <td>${loan.bookTitle || 'N/A'}</td>
-                <td>${loan.username || 'Unknown'}</td>
+                <td>${loan.bookAuthor || 'Unknown'}</td>
                 <td>${issueDate}</td>
                 <td>${returnDate}</td>
                 <td>
                     <span class="badge ${isOverdue ? 'badge-overdue' : 'badge-available'}">
-                        ${isOverdue ? '⚠️ OVERDUE' : (daysUntilDue <= 3 ? `📅 ${daysUntilDue} days left` : '✓ On time')}
+                        ${statusText}
                     </span>
+                    ${warningText}
                 </td>
                 <td>
                     <button class="btn-warning" onclick="openReturnModal('${loan.id}', '${loan.bookTitle}')">
@@ -334,13 +372,13 @@ async function loadMyHistory() {
         }
         
         tbody.innerHTML = history.map(record => {
-            const issueDate = new Date(record.issueDate).toLocaleDateString();
-            const returnedDate = record.actualReturnDate ? new Date(record.actualReturnDate).toLocaleDateString() : 'Not returned';
+            const issueDate = formatDateSafe(record.issueDate);
+            const returnedDate = record.actualReturnDate ? formatDateSafe(record.actualReturnDate) : 'Not returned';
             const status = record.status || (record.actualReturnDate ? 'Returned' : 'Issued');
             
             return `<tr>
                 <td>${record.bookTitle || 'N/A'}</td>
-                <td>${record.username || 'Unknown'}</td>
+                <td>${record.bookAuthor || 'Unknown'}</td>
                 <td>${issueDate}</td>
                 <td>${returnedDate}</td>
                 <td>₹ ${record.fine || 0}</td>
@@ -390,9 +428,9 @@ async function loadStats() {
         });
         const totalBorrowed = totalBorrowedSet.size;
         
-        // Count overdue
+        // Count overdue - Issue model uses 'returnDate' field, not 'dueAt'
         const today = new Date();
-        const overdue = loans.filter(loan => new Date(loan.dueAt) < today).length;
+        const overdue = loans.filter(loan => new Date(loan.returnDate) < today).length;
         
         // Count available books
         const totalAvailable = books.reduce((sum, book) => sum + (book.availableCopies || 0), 0);
@@ -411,12 +449,6 @@ async function loadStats() {
 function initializeDashboard() {
     console.log('📚 Initializing student dashboard...');
     
-    if (!TOKEN || !USER_ID) {
-        console.warn('✗ No token or user ID found, redirecting to login');
-        window.location.href = '/pages/login.html';
-        return;
-    }
-    
     // Set username in header
     const username = localStorage.getItem('username') || 'Student';
     const userDisplay = document.getElementById('studentUsername');
@@ -432,6 +464,17 @@ function initializeDashboard() {
             console.log('🚪 Logging out...');
             localStorage.clear();
             window.location.href = '/pages/login.html';
+        });
+    }
+    
+    // Setup search Enter key
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                searchBooks();
+            }
         });
     }
     
