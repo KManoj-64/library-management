@@ -2,7 +2,6 @@ document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const username = document.getElementById('username').value;
   const password = document.getElementById('password').value;
-  const role = document.getElementById('role')?.value || 'student';
   const res = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
   const json = await res.json();
   if (json.success) {
@@ -25,7 +24,6 @@ document.getElementById('registerForm')?.addEventListener('submit', async (e) =>
   const email = document.getElementById('email')?.value;
   const password = document.getElementById('password')?.value;
   const confirm = document.getElementById('confirmPassword')?.value;
-  const role = document.getElementById('role')?.value || 'student';
 
   if (!username || !email || !password) return alert('Please fill all required fields');
   if (password !== confirm) return alert('Passwords do not match');
@@ -34,7 +32,7 @@ document.getElementById('registerForm')?.addEventListener('submit', async (e) =>
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password, role, email })
+      body: JSON.stringify({ username, password, role: 'student', email })
     });
     const json = await res.json();
     if (json.success) {

@@ -7,6 +7,7 @@ const issueSchema = new mongoose.Schema({
   bookId: { type: String, required: true },
   username: String,
   bookTitle: String,
+  bookAuthor: String,
   issueDate: { type: Number, default: () => Date.now() },
   returnDate: { type: Number, required: true }, // Due date (issueDate + 14 days)
   actualReturnDate: { type: Number, default: null }, // When book was actually returned
@@ -29,7 +30,15 @@ async function findByUserId(userId) {
   return await Issue.find({ userId });
 }
 
-async function create({ userId, bookId, issueDate = Date.now(), dueDays = 14, username = '', bookTitle = '' }) {
+async function countActiveByUser(userId) {
+  return await Issue.countDocuments({ userId, status: 'Issued' });
+}
+
+async function findActiveByUserAndBook(userId, bookId) {
+  return await Issue.findOne({ userId, bookId, status: 'Issued' });
+}
+
+async function create({ userId, bookId, issueDate = Date.now(), dueDays = 14, username = '', bookTitle = '', bookAuthor = '' }) {
   const id = uuidv4();
   const returnDate = issueDate + (dueDays * 24 * 3600 * 1000);
   
@@ -39,6 +48,7 @@ async function create({ userId, bookId, issueDate = Date.now(), dueDays = 14, us
     bookId,
     username,
     bookTitle,
+    bookAuthor,
     issueDate,
     returnDate,
     actualReturnDate: null,
@@ -92,6 +102,8 @@ module.exports = {
   all,
   findById,
   findByUserId,
+  countActiveByUser,
+  findActiveByUserAndBook,
   create,
   update,
   returnIssue,
